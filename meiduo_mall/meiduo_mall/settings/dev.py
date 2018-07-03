@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/1.11/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.11/ref/settings/
 """
-
+import datetime
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -29,7 +29,11 @@ SECRET_KEY = 'w2*s9yd$p8_$l3p!+6w!238%=!y#39xx!!k3pqa5+$9-77_t7c'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'api.meiduo.com',
+    '127.0.0.1',
+    'www.meiduo.com'
+]
 
 # Application definition
 
@@ -42,6 +46,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # 添加apps应用目录的路径
     'users.apps.UsersConfig',
+    # 注册oauth模块
+    'oauth.apps.OauthConfig',
     'rest_framework',
     'corsheaders',
 ]
@@ -58,9 +64,12 @@ MIDDLEWARE = [
 ]
 
 CORS_ORIGIN_WHITELIST = (
-    '127.0.0.1:50709',
-    'localhost:50709',
+    'localhost:8080',
+    '127.0.0.1:8080',
+    'www.meiduo.com:8080',
+    'api.meiduo.com:8000',
 )
+
 CORS_ALLOW_CREDENTIALS = True  # 允许携带cookie
 
 ROOT_URLCONF = 'meiduo_mall.urls'
@@ -220,8 +229,41 @@ LOGGING = {
 REST_FRAMEWORK = {
     # 异常处理
     'EXCEPTION_HANDLER': 'meiduo_mall.utils.exceptions.exception_handler',
+    # jwt配置,修改rest_framework框架中认证类中的状态保持机制
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ),
+}
+
+# JWT
+JWT_AUTH = {
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=1),
+    'JWT_RESPONSE_PAYLOAD_HANDLER': 'users.utils.jwt_response_payload_handler',
 }
 
 # 设置Django中使用的用户认证模型
 # 以下配置必须在第一次数据迁移之前
 AUTH_USER_MODEL = 'users.User'
+
+# 自定义认证后端
+AUTHENTICATION_BACKENDS = [
+    'users.utils.UsernameMobileAuthBackend',
+]
+
+# QQ登录参数
+QQ_API_ID = '101480417'
+QQ_APP_KEY = '325a06cd42b16e0576f16d8b9d8aeeaa'
+QQ_REDIRECT_URI = 'http://www.meiduo.com:8080/oauth_callback.html'
+
+# 邮箱配置信息
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.163.com'
+EMAIL_PORT = 25
+#发送邮件的邮箱
+EMAIL_HOST_USER = '13124071812@163.com'
+#在邮箱中设置的客户端授权密码
+EMAIL_HOST_PASSWORD = 'qwer1234'
+#收件人看到的发件人
+EMAIL_FROM = '美多商城<13124071812@163.com>'

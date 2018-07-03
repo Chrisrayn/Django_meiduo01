@@ -14,6 +14,7 @@ from meiduo_mall.libs.yuntongxun.sms import CCP
 from . import serializers
 from meiduo_mall.apps.vertifications import constants
 from meiduo_mall.libs.captcha.captcha import captcha
+from celery_tasks.sms.tasks import send_sms_code
 
 
 class ImageCodeView(APIView):
@@ -56,9 +57,38 @@ class SMSCodeView(GenericAPIView):
         pl.setex("send_flag_%s" % mobile, constants.SEND_SMS_CODE_INTERVAL, 1)
         pl.execute()
         # 发送短信验证码
-        time = str(constants.SMS_CODE_REDIS_EXPIRES / 60)
-        ccp = CCP()
-        ccp.send_template_sms(mobile, [sms_code, time], constants.SMS_TEMP_ID)
-
+        # time = str(constants.SMS_CODE_REDIS_EXPIRES / 60)
+        # ccp = CCP()
+        # ccp.send_template_sms(mobile, [sms_code, time], constants.SMS_TEMP_ID)
+        # 调用celer执行异步任务
+        send_sms_code.delay(mobile, sms_code)
         # 返回响应结果
         return Response({"message": "ok"}, status.HTTP_200_OK)
+
+
+class SMSCodeByTokenView(GenericAPIView):
+    # 给当前视图类指定序列化器
+    serializer_class = serializers.CheckSMSCodeTokenSerializer
+    # 凭借access_token发送短信验证码
+
+    def get(self, request):
+        # 调用检验发送短信的access_token和手机号
+        serializer = self.get_serializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        # 提取序列化器中的属性
+        mobile = serializer.mobile
+
+        # 生成短信验证码
+        sms_code = '%06d' % random.randint(0, 999999)
+        # 保存短信验证码与发送记录
+        redis_conn = get_redis_connection('verify_codes')
+        pl = redis_conn.pipeline()
+        pl.multi()
+        pl.setex('sms_%s' % mobile, constants.SMS_CODE_REDIS_EXPIRES, sms_code)
+        pl.setex('send_flag_%s' % mobile, constants.SEND_SMS_CODE_INTERVAL, 1)
+        pl.execute()
+        # 发送短信
+        send_sms_code.delay(mobile,sms_code)
+        # 返回响应结果
+        return Response({'message': 'OK'}, status.HTTP_200_OK)
+

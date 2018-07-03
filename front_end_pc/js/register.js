@@ -1,6 +1,7 @@
 var vm = new Vue({
 	el: '#app',
 	data: {
+	    host,
 		error_name: false,
 		error_password: false,
 		error_check_password: false,
@@ -47,7 +48,7 @@ var vm = new Vue({
 			//生成一个编号
 			this.image_code_id = this.generate_uuid();
 			//设置页面中图片验证码img标签的src属性
-			this.image_code_url = 'http://127.0.0.1:8000' + '/image_code/' + this.image_code_id + '/';
+			this.image_code_url = this.host + '/image_code/' + this.image_code_id + '/';
 		},
         // 发送短信验证码
         send_sms_code: function() {
@@ -66,7 +67,7 @@ var vm = new Vue({
 				return;
 			}
             //
-			axios.get('http://127.0.0.1:8000/sms_code/' + this.mobile + '/?image_code=' + this.image_code+'&image_code_id='+ this.image_code_id, {
+			axios.get(this.host + '/sms_code/' + this.mobile + '/?image_code=' + this.image_code+'&image_code_id='+ this.image_code_id, {
 					// 向后端声明，请返回json数据
 					responseType: 'json'
 				})
@@ -108,7 +109,7 @@ var vm = new Vue({
 			}
 			//检查用户名的唯一性
 			if (this.error_name == false){
-				axios.get('http://127.0.0.1:8000/usernames/' + this.username + '/count/',{
+				axios.get(this.host +'/usernames/' + this.username + '/count/',{
 					responseType: 'json'
 					})
 					.then(response => {
@@ -149,7 +150,7 @@ var vm = new Vue({
 			}
 			//校验手机号码的唯一性
 			if (this.error_phone == false) {
-				axios.get('http://127.0.0.1:8000/mobiles/' + this.mobile + '/count/', {
+				axios.get(this.host + '/mobiles/' + this.mobile + '/count/', {
 					responseType: 'json'
 				})
 					.then(response =>{
@@ -194,6 +195,40 @@ var vm = new Vue({
 			this.check_phone();
 			this.check_sms_code();
 			this.check_allow();
+
+			//提交用户注册信息
+			if(this.error_name == false && this.error_password == false && this.error_check_password == false
+				&& this.error_phone == false && this.error_sms_code == false && this.error_allow == false){
+				axios.post(this.host + '/users/',{
+					    username: this.username,
+						password: this.password,
+						password2: this.password2,
+						mobile: this.mobile,
+						sms_code: this.sms_code,
+						allow: this.allow.toString()
+					},{
+						responseType: 'json'
+					})
+					.then(response =>{
+						// 注册成功了，保存登陆状态，并跳转到首页/用户中心
+                        sessionStorage.clear();
+                        localStorage.clear();
+                        localStorage.token = response.data.token;
+                        localStorage.username = response.data.username;
+                        localStorage.user_id = response.data.user_id;
+                        // 跳转到首页
+                        location.href = '/index.html'; // 也可以使用 location.assign("/index.html");
+					})
+					.catch(error =>{
+						if(error.response.status==400){
+							this.error_sms_code_message = '短信验证码错误';
+							this.error_sms_code = true;
+						} else {
+							console.log(error.response.data);
+						}
+					})
+			}
+
 		}
 	}
 });
