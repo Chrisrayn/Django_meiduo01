@@ -4,7 +4,7 @@ import re
 from rest_framework_jwt.settings import api_settings
 
 from users.utils import get_user_by_account
-from .models import User
+from .models import User, Address
 from celery_tasks.email.tasks import send_verify_email
 
 
@@ -207,3 +207,31 @@ class EmailSerializer(serializers.ModelSerializer):
         return instance
 
 
+class UserAddressSerializer(serializers.ModelSerializer):
+    """
+    用户地址序列化器
+    """
+    province = serializers.StringRelatedField(read_only=True)
+    city = serializers.StringRelatedField(read_only=True)
+    district = serializers.StringRelatedField(read_only=True)
+    province_id = serializers.IntegerField(label='省ID', required=True)
+    city_id = serializers.IntegerField(label='市ID', required=True)
+    district_id = serializers.IntegerField(label='区ID', required=True)
+    mobile = serializers.RegexField(label='手机号', regex=r'^1[3-9]\d{9}$')
+
+    class Meta:
+        model = Address
+        exclude = ('user', 'is_deleted', 'create_time', 'update_time')
+
+    def create(self, validated_data):
+        """保存"""
+        # Address模型类中有user属性，将user对象添加到模型类的创建参数中
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
+
+
+class AddressTitleSerializer():
+    """地址标题"""
+    class Meta:
+        model = Address
+        fields = ('title',)

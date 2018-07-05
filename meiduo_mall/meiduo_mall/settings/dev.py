@@ -31,7 +31,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     'api.meiduo.com',
-    '127.0.0.1',
     'www.meiduo.com'
 ]
 
@@ -48,6 +47,8 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     # 注册oauth模块
     'oauth.apps.OauthConfig',
+    # 行政区划
+    'areas.apps.AreasConfig',
     'rest_framework',
     'corsheaders',
 ]
@@ -64,8 +65,6 @@ MIDDLEWARE = [
 ]
 
 CORS_ORIGIN_WHITELIST = (
-    'localhost:8080',
-    '127.0.0.1:8080',
     'www.meiduo.com:8080',
     'api.meiduo.com:8000',
 )
@@ -267,3 +266,11 @@ EMAIL_HOST_USER = '13124071812@163.com'
 EMAIL_HOST_PASSWORD = 'qwer1234'
 #收件人看到的发件人
 EMAIL_FROM = '美多商城<13124071812@163.com>'
+
+# DRF扩展
+REST_FRAMEWORK_EXTENSIONS = {
+    # 缓存时间
+    'DEFAULT_CACHE_RESPONSE_TIMEOUT': 60 * 60 * 24,
+    # 缓存存储
+    'DEFAULT_USE_CACHE': 'default',
+}
